@@ -1,0 +1,23 @@
+
+> frontend_mediconnect@0.1.0 build
+> next build
+
+▲ Next.js 16.2.3 (Turbopack)
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 2.4s
+  Running TypeScript ...
+Failed to type check.
+
+./src/components/landing/AppDownloadSection.tsx:10:16
+Type error: Type 'string | StaticImageData' is not assignable to type 'string | Blob | undefined'.
+  Type 'StaticImageData' is not assignable to type 'string | Blob | undefined'.
+
+  [90m 8 |[0m       <div className=[32m"rounded-3xl bg-navy text-primary-foreground p-10 lg:p-16 grid lg:gri...[0m
+  [90m 9 |[0m         <div className=[32m"flex justify-center"[0m>
+[31m[1m>[0m [90m10 |[0m           <img src={[36mtypeof[0m appMockup === [32m"string"[0m ? appMockup : appMockup?.src || appMocku...
+  [90m   |[0m                [31m[1m^[0m
+  [90m11 |[0m         </div>
+  [90m12 |[0m         <div className=[32m"space-y-6"[0m>
+  [90m13 |[0m           <h2 className=[32m"text-3xl lg:text-5xl font-extrabold leading-tight"[0m>
+Next.js build worker exited with code: 1 and signal: null
