@@ -327,12 +327,13 @@ const PetaHeatmap = () => {
             <CardTitle className="text-base font-semibold">Peta Sebaran — {penyakitOptions.find(p => p.value === selected)!.label}</CardTitle>
           </CardHeader>
           <CardContent className="flex-1 p-0 pb-6 px-6">
-            <div className="relative w-full rounded-xl border border-border overflow-hidden" style={{ minHeight: 500 }}>
+            <div className="relative w-full rounded-xl border border-border overflow-hidden" style={{ height: 500 }}>
               <Map
-                center={[107.61, -6.91]} // Center of Bandung
+                center={[107.61, -6.91]}
                 zoom={11.5}
                 projection={{ type: "mercator" }}
                 styles={{ light: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json", dark: "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json" }}
+                className="absolute inset-0 w-full h-full"
               >
                 <BandungHeatmapLayers geoJson={geoJson} maxVal={maxVal} />
               </Map>
