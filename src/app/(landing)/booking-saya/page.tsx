@@ -9,6 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { CalendarClock, MapPin, Stethoscope, Hash, Clock, CircleAlert, Loader2 } from "lucide-react";
 
+import { useQuery } from "@tanstack/react-query";
+
 const getStatusDetails = (status: string) => {
   switch (status) {
     case "PENDING":
@@ -26,23 +28,17 @@ const getStatusDetails = (status: string) => {
 };
 
 export default function BookingList() {
-  const [bookings, setBookings] = useState<BackendBookingDetail[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    async function fetchBookings() {
-      try {
-        const data = await api.bookings.list();
-        setBookings(data || []);
-      } catch (err: any) {
-        setError(err.message || "Gagal memuat jadwal booking.");
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchBookings();
-  }, []);
+  const {
+    data: bookings = [],
+    isLoading: loading,
+    error,
+  } = useQuery<BackendBookingDetail[], Error>({
+    queryKey: ["myBookings"],
+    queryFn: async () => {
+      const data = await api.bookings.list();
+      return data || [];
+    },
+  });
 
   return (
     <div className="container mx-auto px-6 py-12 max-w-5xl flex-1">
@@ -53,7 +49,7 @@ export default function BookingList() {
       ) : error ? (
         <div className="flex w-full flex-col items-center justify-center space-y-3 py-12">
           <CircleAlert className="h-10 w-10 text-destructive" />
-          <p className="text-muted-foreground">{error}</p>
+          <p className="text-muted-foreground">{error.message}</p>
         </div>
       ) : bookings.length === 0 ? (
         <>
