@@ -1,3 +1,5 @@
+"use client"
+
 import { useState } from "react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -17,6 +19,7 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { useRouter } from "next/navigation"
+import { loginAction } from "@/app/actions/auth"
 
 export function LoginForm({
   className,
@@ -35,19 +38,19 @@ export function LoginForm({
     const data = Object.fromEntries(formData.entries())
 
     try {
-      const response = await fetch("http://localhost:8080/api/v1/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      })
+      // Panggil Server Action agar request fetch & penyimpanan Cookie 
+      // dilakukan di sisi server (Node.js/Edge NextJS), 
+      // sehingga browser hanya menerima set-cookie HttpOnly.
+      const result = await loginAction(data)
 
-      const result = await response.json()
-
-      if (!response.ok) {
-        throw new Error(result.message || "Failed to login")
+      if (result.error) {
+        throw new Error(result.error)
       }
 
-      router.push("/dashboard") // or redirect as needed
+      // Jika sukses, router push & refresh agar middleware membaca ulang cookie
+      router.push("/dashboard") 
+      router.refresh()
+      
     } catch (err: any) {
       setError(err.message)
     } finally {
