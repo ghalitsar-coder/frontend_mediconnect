@@ -75,7 +75,7 @@ export function RegisterForm({
                 <Input
                   id="nik"
                   name="nik"
-                  pattern="\d{16}"
+                  // pattern="\d{16}"
                   title="NIK must be exactly 16 digits"
                   placeholder="1234567890123456"
                   required
