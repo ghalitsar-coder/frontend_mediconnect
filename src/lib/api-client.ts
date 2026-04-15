@@ -19,6 +19,7 @@ import type {
   BackendSlot,
   BackendBookingRequest,
   BackendBookingResponse,
+  BackendBookingDetail,
 } from './backend-types';
 
 // ─── Base URL ─────────────────────────────────────────────────────────────────
@@ -272,6 +273,11 @@ export const api = {
      */
     create: (data: BackendBookingRequest) =>
       http.post<BackendBookingResponse>('/bookings', data),
+
+    /**
+     * Ambil daftar booking milik user saat ini
+     */
+    list: () => http.get<BackendBookingDetail[]>('/bookings'),
   },
 
   // ── Health check ──────────────────────────────────────────────────────────

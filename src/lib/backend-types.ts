@@ -82,3 +82,19 @@ export interface BackendBookingResponse {
   token: string;
   no_antrian: string;
 }
+
+export interface BackendBookingDetail {
+  id: string;
+  booking_code: string;
+  queue_number: string;
+  status: AppointmentStatus;
+  schedule_date: string;
+  schedule_time: string;
+  facility_id: string;
+  facility_name: string;
+  facility_type: FacilityType;
+  doctor_id: string;
+  doctor_name: string;
+  speciality: string;
+  created_at: string;
+}

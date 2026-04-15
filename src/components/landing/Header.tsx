@@ -82,8 +82,8 @@ const Header = async () => {
                 )}
                 {user.role === "PATIENT" && (
                   <DropdownMenuItem asChild>
-                    <Link href="/booking" className="cursor-pointer">
-                      My Bookings
+                    <Link href="/booking-saya" className="cursor-pointer">
+                      Jadwal Saya
                     </Link>
                   </DropdownMenuItem>
                 )}
