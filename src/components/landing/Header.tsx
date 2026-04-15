@@ -1,7 +1,8 @@
-"use client";
+// Server Component — tidak ada "use client"
+// Baca cookie di server, tidak ada useEffect atau useState
 import { Search, ShoppingCart, MapPin, ChevronDown, User, LogOut } from "lucide-react";
-import { useEffect, useState } from "react";
-import { getUserAction, logoutAction } from "@/app/actions/auth";
+import { getCurrentUser } from "@/lib/auth";        // ← plain function, BUKAN Server Action
+import { logoutAction } from "@/app/actions/auth";  // ← hanya mutasi (logout)
 import Link from "next/link";
 import {
   DropdownMenu,
@@ -12,17 +13,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const Header = () => {
-  const [user, setUser] = useState<{ user_id: string; role: string } | null>(null);
-
-  useEffect(() => {
-    // Jalankan pengecekan user saat component di mount ke client
-    const fetchUser = async () => {
-      const data = await getUserAction();
-      setUser(data);
-    };
-    fetchUser();
-  }, []);
+const Header = async () => {
+  // Dibaca di SERVER — tidak ada flash/loading state, tidak ada POST request
+  const user = await getCurrentUser();
 
   return (
     <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-md border-b border-border">
@@ -63,7 +56,7 @@ const Header = () => {
             <ShoppingCart size={20} />
             <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-pastel-peach text-[10px] font-bold flex items-center justify-center text-foreground">2</span>
           </button>
-          
+
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -76,31 +69,46 @@ const Header = () => {
               <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuLabel>
                   <span className="text-xs text-muted-foreground">Logged in as</span>
-                  <p className="font-medium capitalize">{user.role}</p>
+                  <p className="font-medium capitalize">{user.role.toLowerCase()}</p>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/dashboard" className="cursor-pointer">
-                    Dashboard
-                  </Link>
-                </DropdownMenuItem>
+                {/* PATIENT tidak ditampilkan link Dashboard */}
+                {user.role !== "PATIENT" && (
+                  <DropdownMenuItem asChild>
+                    <Link href="/dashboard" className="cursor-pointer">
+                      Dashboard
+                    </Link>
+                  </DropdownMenuItem>
+                )}
+                {user.role === "PATIENT" && (
+                  <DropdownMenuItem asChild>
+                    <Link href="/booking" className="cursor-pointer">
+                      My Bookings
+                    </Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem asChild>
                   <Link href="/profile" className="cursor-pointer">
                     Profile Settings
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem 
-                  onClick={() => logoutAction()}
-                  className="text-destructive cursor-pointer"
-                >
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Logout
-                </DropdownMenuItem>
+                {/* logoutAction: server action → hapus cookie + redirect ke "/" */}
+                <form action={logoutAction}>
+                  <DropdownMenuItem asChild>
+                    <button type="submit" className="w-full text-destructive cursor-pointer flex items-center">
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Logout
+                    </button>
+                  </DropdownMenuItem>
+                </form>
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Link href="/login" className="px-5 py-2 rounded-full bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity">
+            <Link
+              href="/login"
+              className="px-5 py-2 rounded-full bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
+            >
               Login
             </Link>
           )}

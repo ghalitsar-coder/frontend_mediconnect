@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { useRouter } from "next/navigation"
-import { loginAction } from "@/app/actions/auth"
+import { api, markAuthSessionPresent } from "@/lib/api-client"
 
 export function LoginForm({
   className,
@@ -38,14 +38,15 @@ export function LoginForm({
     const data = Object.fromEntries(formData.entries())
 
     try {
-      // Panggil Server Action agar request fetch & penyimpanan Cookie 
-      // dilakukan di sisi server (Node.js/Edge NextJS), 
-      // sehingga browser hanya menerima set-cookie HttpOnly.
-      const result = await loginAction(data)
-
-      if (result.error) {
-        throw new Error(result.error)
-      }
+      // Menggunakan api-client.ts untuk melakukan fetch dari frontend
+      // Backend akan men-set HttpOnly cookie secara otomatis (credentials: 'include')
+      const result = await api.auth.login({ 
+        email: data.email as string, 
+        password: data.password as string 
+      })
+      
+      // Set non-HttpOnly cookie untuk auth_session dan user_role supaya middleware/proxy mengetahuinya
+      markAuthSessionPresent(result.user?.role ?? "PATIENT")
 
       // Jika sukses, router push & refresh agar middleware membaca ulang cookie
       router.push("/dashboard") 

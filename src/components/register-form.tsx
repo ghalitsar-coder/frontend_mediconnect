@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { useRouter } from "next/navigation"
+import { api } from "@/lib/api-client"
 
 export function RegisterForm({
   className,
@@ -35,20 +36,15 @@ export function RegisterForm({
 
     const formData = new FormData(e.currentTarget)
     const data = Object.fromEntries(formData.entries())
-    data.role = "PATIENT" // default role
 
     try {
-      const response = await fetch("http://localhost:8080/api/v1/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+      await api.auth.register({
+        nik: data.nik as string,
+        email: data.email as string,
+        password: data.password as string,
+        full_name: data.full_name as string,
+        role: "PATIENT",
       })
-
-      const result = await response.json()
-
-      if (!response.ok) {
-        throw new Error(result.message || "Failed to register")
-      }
 
       router.push("/login")
     } catch (err: any) {
