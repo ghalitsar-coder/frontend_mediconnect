@@ -1,10 +1,11 @@
 #!/bin/sh
 
-# Cari semua file JS di dalam folder .next hasil build
-# Lalu ganti teks 'APP_PLACEHOLDER_API_URL' dengan isi dari variabel $NEXT_PUBLIC_API_URL
-echo "Replacing API URL to: $NEXT_PUBLIC_API_URL"
+# Jika variabel NEXT_PUBLIC_API_URL tidak kosong, lakukan penggantian
+if [ -n "$NEXT_PUBLIC_API_URL" ]; then
+  echo "Replacing APP_PLACEHOLDER_API_URL with $NEXT_PUBLIC_API_URL in .next folder..."
+  # Mencari semua file .js di folder .next dan mengganti placeholder
+  find /app/.next -type f -name "*.js" -exec sed -i "s|APP_PLACEHOLDER_API_URL|$NEXT_PUBLIC_API_URL|g" {} +
+fi
 
-find /app/.next -type f -name "*.js" -exec sed -i "s|APP_PLACEHOLDER_API_URL|$NEXT_PUBLIC_API_URL|g" {} +
-
-# Jalankan perintah utama Docker (biasanya npm start)
+# Jalankan perintah selanjutnya (npm start)
 exec "$@"
