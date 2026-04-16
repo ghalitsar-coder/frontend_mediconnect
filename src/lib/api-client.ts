@@ -24,12 +24,13 @@ import type {
 
 // ─── Base URL ─────────────────────────────────────────────────────────────────
 
-const RAW_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
-const API_BASE_URL = RAW_API_URL.endsWith('/api/v1')
+const RAW_API_URL = process.env.NODE_ENV === 'production'
+  ? process.env.NEXT_PUBLIC_API_URL
+  : 'http://localhost:8080/api/v1';
+
+const API_BASE_URL = RAW_API_URL?.endsWith('/api/v1')
   ? RAW_API_URL
-  : RAW_API_URL.endsWith('/')
-  ? `${RAW_API_URL}api/v1`
-  : `${RAW_API_URL}/api/v1`;
+  : `${RAW_API_URL?.replace(/\/$/, '')}/api/v1`;
 
 // ─── Response envelope ────────────────────────────────────────────────────────
 
@@ -64,9 +65,9 @@ export class ApiError extends Error {
   }
 
   isUnauthorized() { return this.statusCode === 401 || this.code === 'UNAUTHORIZED'; }
-  isForbidden()    { return this.statusCode === 403 || this.code === 'FORBIDDEN'; }
-  isNotFound()     { return this.statusCode === 404 || this.code === 'NOT_FOUND'; }
-  isValidation()   { return this.code === 'VALIDATION_ERROR'; }
+  isForbidden() { return this.statusCode === 403 || this.code === 'FORBIDDEN'; }
+  isNotFound() { return this.statusCode === 404 || this.code === 'NOT_FOUND'; }
+  isValidation() { return this.code === 'VALIDATION_ERROR'; }
 }
 
 // ─── Auth session markers (non-HttpOnly, dibaca proxy.ts) ─────────────────────
@@ -145,7 +146,7 @@ async function request<T>(endpoint: string, options: RequestConfig = {}): Promis
       if (response.status === 401) {
         clearAuthSessionMarkers();
         if (typeof window !== 'undefined' &&
-            !window.location.pathname.startsWith('/login')) {
+          !window.location.pathname.startsWith('/login')) {
           window.location.assign('/login');
         }
         throw new ApiError('UNAUTHORIZED', 'Session expired. Please log in again.', undefined, 401);
@@ -174,19 +175,20 @@ async function request<T>(endpoint: string, options: RequestConfig = {}): Promis
   }
 }
 
+
 // ─── Generic HTTP methods ─────────────────────────────────────────────────────
 
 const http = {
-  get:    <T>(endpoint: string, config?: RequestConfig) =>
+  get: <T>(endpoint: string, config?: RequestConfig) =>
     request<T>(endpoint, { ...config, method: 'GET' }),
 
-  post:   <T>(endpoint: string, body?: unknown, config?: RequestConfig) =>
+  post: <T>(endpoint: string, body?: unknown, config?: RequestConfig) =>
     request<T>(endpoint, { ...config, method: 'POST', body: body ? JSON.stringify(body) : undefined }),
 
-  put:    <T>(endpoint: string, body?: unknown, config?: RequestConfig) =>
+  put: <T>(endpoint: string, body?: unknown, config?: RequestConfig) =>
     request<T>(endpoint, { ...config, method: 'PUT', body: body ? JSON.stringify(body) : undefined }),
 
-  patch:  <T>(endpoint: string, body?: unknown, config?: RequestConfig) =>
+  patch: <T>(endpoint: string, body?: unknown, config?: RequestConfig) =>
     request<T>(endpoint, { ...config, method: 'PATCH', body: body ? JSON.stringify(body) : undefined }),
 
   delete: <T>(endpoint: string, config?: RequestConfig) =>
@@ -237,7 +239,7 @@ export const api = {
     list: (filter?: { district_id?: string; type?: 'PUSKESMAS' | 'KLINIK' }) => {
       const params = new URLSearchParams();
       if (filter?.district_id) params.set('district_id', filter.district_id);
-      if (filter?.type)        params.set('type', filter.type);
+      if (filter?.type) params.set('type', filter.type);
       const query = params.toString() ? `?${params.toString()}` : '';
       return http.get<BackendFacility[]>(`/facilities${query}`);
     },
@@ -251,7 +253,7 @@ export const api = {
     list: (filter?: { facility_id?: string; poli?: string }) => {
       const params = new URLSearchParams();
       if (filter?.facility_id) params.set('facility_id', filter.facility_id);
-      if (filter?.poli)        params.set('poli', filter.poli);
+      if (filter?.poli) params.set('poli', filter.poli);
       const query = params.toString() ? `?${params.toString()}` : '';
       return http.get<BackendDoctor[]>(`/doctors${query}`);
     },

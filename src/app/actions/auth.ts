@@ -3,30 +3,21 @@
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 
-// ─── Helper: decode JWT payload (server-side only) ───────────────────────────
-function decodeJwtPayload(token: string): { user_id: string; role: string; exp: number } | null {
-  try {
-    const base64Url = token.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split('')
-        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-        .join('')
-    );
-    const payload = JSON.parse(jsonPayload);
-    // Cek expiry
-    if (payload.exp && Date.now() / 1000 > payload.exp) return null;
-    return payload;
-  } catch {
-    return null;
-  }
-}
+ 
 
 // ─── Login ────────────────────────────────────────────────────────────────────
 export async function loginAction(data: { email: string; password: string }) {
+  const RAW_API_URL = process.env.NODE_ENV === 'production'
+  ? process.env.NEXT_PUBLIC_API_URL
+  : 'http://localhost:8080/api/v1';
+
+const API_BASE_URL = RAW_API_URL?.endsWith('/api/v1')
+  ? RAW_API_URL
+  : `${RAW_API_URL?.replace(/\/$/, '')}/api/v1`;
+
+// ─── Response envelope ───
   try {
-    const response = await fetch("http://localhost:8080/api/v1/auth/login", {
+    const response = await fetch(`${API_BASE_URL}/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
@@ -79,18 +70,44 @@ export async function loginAction(data: { email: string; password: string }) {
 
 
 // ─── Logout ───────────────────────────────────────────────────────────────────
+// auth.ts - logoutAction yang sudah diperbaiki
 export async function logoutAction() {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1"
+
+  try {
+    // ✅ Kirim request dengan credentials: 'include' agar browser otomatis
+    //    mengirim semua cookie (termasuk HttpOnly) ke backend
+    const response = await fetch(`${apiUrl}/auth/logout`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include", // 🔑 KRUSIAL: kirim HttpOnly cookie otomatis
+      cache: "no-store",
+    })
+
+    // Opsional: cek response untuk debugging
+    if (!response.ok) {
+      console.error("Logout API error:", response.status)
+    }
+  } catch (error) {
+    console.error("Logout fetch failed:", error)
+    // Tetap lanjutkan untuk menghapus cookie lokal
+  }
+
+  // Hapus cookie di sisi Next.js (untuk berjaga-jaga)
   const cookieStore = await cookies()
-  const opts = {
-    httpOnly: false,
+  const deleteOpts = {
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax" as const,
-    maxAge: 0,
+    maxAge: -1,
     path: "/",
   }
-  // Hapus semua auth cookies — maxAge: 0 langsung expired di browser
-  cookieStore.set("token",        "", { ...opts, httpOnly: true })
-  cookieStore.set("auth_session", "", opts)
-  cookieStore.set("user_role",    "", opts)
+  
+  cookieStore.set("token", "", { ...deleteOpts, httpOnly: true })
+  cookieStore.set("auth_session", "", { ...deleteOpts, httpOnly: false })
+  cookieStore.set("user_role", "", { ...deleteOpts, httpOnly: false })
+
+  // Redirect ke halaman utama
   redirect("/")
 }
