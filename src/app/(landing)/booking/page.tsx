@@ -12,11 +12,21 @@ type Doctor = { id: string, name: string, spec: string, poli: string, rating: nu
 type Slot = { time: string, isAvailable: boolean };
 
 // ── API Setup (Axios with Error Handling) ──
+
+
+const RAW_API_URL = process.env.NODE_ENV === 'production'
+  ? process.env.NEXT_PUBLIC_API_URL
+  : 'http://localhost:8080/api/v1';
+
+const API_BASE_URL = RAW_API_URL?.endsWith('/api/v1')
+  ? RAW_API_URL
+  : `${RAW_API_URL?.replace(/\/$/, '')}/api/v1`;
+
+
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1",
+  baseURL: API_BASE_URL,
   withCredentials: true, // Untuk HttpOnly Cookies
 });
-
 // ── Static Poliklinik (bisa jg diambil dari API, kita asumsikan hardcoded untuk contoh ini)
 const polis = ["Poli Umum", "Poli Gigi", "Poli KIA", "Poli Anak", "Poli Mata", "Poli Paru"];
 
@@ -43,11 +53,10 @@ const StepIndicator = ({ currentStep }: { currentStep: number }) => {
     <div className="flex items-center justify-center gap-1 mb-10 overflow-x-auto pb-4">
       {steps.map((s, i) => (
         <div key={s} className="flex items-center gap-1 shrink-0">
-          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-            i < currentStep ? "bg-pastel-mint text-foreground" :
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${i < currentStep ? "bg-pastel-mint text-foreground" :
             i === currentStep ? "bg-primary text-primary-foreground" :
-            "bg-muted text-muted-foreground"
-          }`}>
+              "bg-muted text-muted-foreground"
+            }`}>
             {i < currentStep ? <CheckCircle2 size={14} /> : <span className="w-4 text-center">{i + 1}</span>}
             <span className="hidden sm:inline">{s}</span>
           </div>
@@ -121,7 +130,7 @@ const BookingPage = () => {
       } catch (err) {
         // Mock fallback
         const MOCK: Slot[] = [
-          "08:00", "08:30", "09:00", "09:30", "10:00", "10:30", 
+          "08:00", "08:30", "09:00", "09:30", "10:00", "10:30",
           "11:00", "11:30", "13:00", "13:30", "14:00", "14:30"
         ].map(t => ({ time: t, isAvailable: !["09:30", "11:00", "14:00"].includes(t) }));
         return MOCK;
@@ -141,8 +150,8 @@ const BookingPage = () => {
         // Fallback Simulasi
         console.error(err);
         return new Promise((resolve) => setTimeout(() => {
-          resolve({ 
-            data: { id: "BKG-" + Date.now(), token: `MC-${Date.now().toString(36).toUpperCase().slice(-6)}`, no_antrian: "A-" + Math.floor(Math.random() * 100) } 
+          resolve({
+            data: { id: "BKG-" + Date.now(), token: `MC-${Date.now().toString(36).toUpperCase().slice(-6)}`, no_antrian: "A-" + Math.floor(Math.random() * 100) }
           });
         }, 1500));
       }
@@ -165,14 +174,14 @@ const BookingPage = () => {
 
   const handleBooking = () => {
     if (!selectedFacility || !selectedDoctor || !selectedDate || !selectedTime) return;
-    
+
     const payload = {
       facility_id: selectedFacility.id,
       doctor_id: selectedDoctor.id,
       schedule_date: formatAPI(selectedDate),
       schedule_time: selectedTime,
     };
-    
+
     bookingMutation.mutate(payload);
   };
 
@@ -200,10 +209,10 @@ const BookingPage = () => {
               <h2 className="text-2xl font-extrabold text-foreground mb-1">Pilih Fasilitas Kesehatan</h2>
               <p className="text-sm text-muted-foreground">Pilih Puskesmas atau Klinik yang ingin Anda kunjungi.</p>
             </div>
-            
+
             {isLoadingFacilities ? (
               <div className="flex flex-col gap-4">
-                {[1,2,3].map(i => (
+                {[1, 2, 3].map(i => (
                   <div key={i} className="w-full h-24 rounded-3xl bg-muted animate-pulse"></div>
                 ))}
               </div>
@@ -214,24 +223,21 @@ const BookingPage = () => {
                 <button
                   key={f.id}
                   onClick={() => setSelectedFacility(f)}
-                  className={`w-full text-left rounded-3xl border p-5 transition-all hover-lift ${
-                    selectedFacility?.id === f.id
-                      ? "border-primary bg-primary/5 ring-2 ring-primary/20"
-                      : "border-border bg-card hover:border-primary/30"
-                  }`}
+                  className={`w-full text-left rounded-3xl border p-5 transition-all hover-lift ${selectedFacility?.id === f.id
+                    ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                    : "border-border bg-card hover:border-primary/30"
+                    }`}
                 >
                   <div className="flex items-start gap-4">
-                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 ${
-                      f.type === "PUSKESMAS" ? "bg-pastel-mint" : "bg-pastel-peach"
-                    }`}>
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 ${f.type === "PUSKESMAS" ? "bg-pastel-mint" : "bg-pastel-peach"
+                      }`}>
                       <Building2 size={22} strokeWidth={1.5} className="text-foreground" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
                         <h3 className="font-bold text-foreground">{f.name}</h3>
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                          f.type === "PUSKESMAS" ? "bg-pastel-mint text-foreground" : "bg-pastel-peach text-foreground"
-                        }`}>{f.type}</span>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${f.type === "PUSKESMAS" ? "bg-pastel-mint text-foreground" : "bg-pastel-peach text-foreground"
+                          }`}>{f.type}</span>
                       </div>
                       <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2">
                         <MapPin size={11} />
@@ -269,11 +275,10 @@ const BookingPage = () => {
                   <button
                     key={p}
                     onClick={() => { setSelectedPoli(p); setSelectedDoctor(null); }}
-                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                      selectedPoli === p
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground hover:bg-muted/80"
-                    }`}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${selectedPoli === p
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground hover:bg-muted/80"
+                      }`}
                   >{p}</button>
                 ))}
               </div>
@@ -296,11 +301,10 @@ const BookingPage = () => {
                       <button
                         key={d.id}
                         onClick={() => setSelectedDoctor(d)}
-                        className={`w-full text-left rounded-2xl border p-4 transition-all ${
-                          selectedDoctor?.id === d.id
-                            ? "border-primary bg-primary/5 ring-2 ring-primary/20"
-                            : "border-border bg-card hover:border-primary/30"
-                        }`}
+                        className={`w-full text-left rounded-2xl border p-4 transition-all ${selectedDoctor?.id === d.id
+                          ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                          : "border-border bg-card hover:border-primary/30"
+                          }`}
                       >
                         <div className="flex items-center gap-4">
                           <div className="w-12 h-12 rounded-full bg-pastel-blue flex items-center justify-center flex-shrink-0">
@@ -345,11 +349,10 @@ const BookingPage = () => {
                   <button
                     key={i}
                     onClick={() => { setSelectedDate(d); setSelectedTime(null); }}
-                    className={`flex-shrink-0 w-20 py-3 rounded-2xl text-center transition-all ${
-                      selectedDate?.toDateString() === d.toDateString()
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-card border border-border text-foreground hover:border-primary/30"
-                    }`}
+                    className={`flex-shrink-0 w-20 py-3 rounded-2xl text-center transition-all ${selectedDate?.toDateString() === d.toDateString()
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-card border border-border text-foreground hover:border-primary/30"
+                      }`}
                   >
                     <p className="text-[10px] uppercase font-medium opacity-70">
                       {d.toLocaleDateString("id-ID", { weekday: "short" })}
@@ -371,7 +374,7 @@ const BookingPage = () => {
                 </label>
                 {isLoadingSlots ? (
                   <div className="flex items-center gap-2 text-muted-foreground py-4">
-                    <Loader2 size={18} className="animate-spin"/> Sedang mengecek ketersediaan...
+                    <Loader2 size={18} className="animate-spin" /> Sedang mengecek ketersediaan...
                   </div>
                 ) : (
                   <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 mt-3">
@@ -381,13 +384,12 @@ const BookingPage = () => {
                           key={slot.time}
                           onClick={() => slot.isAvailable && setSelectedTime(slot.time)}
                           disabled={!slot.isAvailable}
-                          className={`py-2.5 rounded-xl text-sm font-medium transition-all ${
-                            !slot.isAvailable
-                              ? "bg-muted/50 text-muted-foreground/40 cursor-not-allowed line-through"
-                              : selectedTime === slot.time
-                                ? "bg-primary text-primary-foreground"
-                                : "bg-card border border-border text-foreground hover:border-primary/30"
-                          }`}
+                          className={`py-2.5 rounded-xl text-sm font-medium transition-all ${!slot.isAvailable
+                            ? "bg-muted/50 text-muted-foreground/40 cursor-not-allowed line-through"
+                            : selectedTime === slot.time
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-card border border-border text-foreground hover:border-primary/30"
+                            }`}
                         >{slot.time}</button>
                       );
                     })}
@@ -485,7 +487,7 @@ const BookingPage = () => {
             </div>
 
             <div className="flex flex-wrap justify-center gap-3">
-              <button 
+              <button
                 onClick={() => window.print()}
                 className="flex items-center gap-2 px-6 py-3 rounded-full bg-primary text-primary-foreground text-sm font-medium hover-lift shadow-md shadow-primary/20"
               >
@@ -514,11 +516,10 @@ const BookingPage = () => {
             <button
               onClick={() => setStep(s => s - 1)}
               disabled={step === 0 || bookingMutation.isPending}
-              className={`flex items-center gap-2 px-6 py-3 rounded-full text-sm font-medium transition-all ${
-                step === 0
-                  ? "opacity-0 pointer-events-none"
-                  : "border border-border text-foreground hover:bg-muted"
-              }`}
+              className={`flex items-center gap-2 px-6 py-3 rounded-full text-sm font-medium transition-all ${step === 0
+                ? "opacity-0 pointer-events-none"
+                : "border border-border text-foreground hover:bg-muted"
+                }`}
             >
               <ArrowLeft size={16} />
               Kembali
@@ -532,13 +533,12 @@ const BookingPage = () => {
                 }
               }}
               disabled={!canNext() || bookingMutation.isPending}
-              className={`flex items-center gap-2 px-8 py-3 rounded-full text-sm font-semibold transition-all shadow-md ${
-                !canNext()
-                  ? "bg-muted text-muted-foreground cursor-not-allowed shadow-none"
-                  : bookingMutation.isPending
-                    ? "bg-primary/80 text-primary-foreground cursor-wait"
-                    : "bg-primary text-primary-foreground hover-lift shadow-primary/30"
-              }`}
+              className={`flex items-center gap-2 px-8 py-3 rounded-full text-sm font-semibold transition-all shadow-md ${!canNext()
+                ? "bg-muted text-muted-foreground cursor-not-allowed shadow-none"
+                : bookingMutation.isPending
+                  ? "bg-primary/80 text-primary-foreground cursor-wait"
+                  : "bg-primary text-primary-foreground hover-lift shadow-primary/30"
+                }`}
             >
               {bookingMutation.isPending ? (
                 <> <Loader2 size={16} className="animate-spin" /> Memproses... </>

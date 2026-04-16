@@ -1,7 +1,7 @@
 "use client";
 
 import { Search, Gift, Bell, Plus, ChevronDown, User, Settings, LogOut, Shield } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { logoutAction } from "@/app/actions/auth";
+import { clearAuthSessionMarkers } from "@/lib/api-client";
 
 // Baca cookie non-HttpOnly di client
 function getCookie(name: string): string | null {
@@ -34,11 +35,21 @@ const ROLE_INITIALS: Record<string, string> = {
 
 const DashboardHeader = () => {
   const [role, setRole] = useState<string>("DINKES");
+  const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
     const r = getCookie("user_role");
     if (r) setRole(r);
   }, []);
+
+  const handleLogout = () => {
+    startTransition(async () => {
+      // Hapus non-HttpOnly cookies di sisi client terlebih dahulu
+      clearAuthSessionMarkers();
+      // Kemudian panggil server action (hapus HttpOnly token + redirect)
+      await logoutAction();
+    });
+  };
 
   const label = ROLE_LABEL[role] ?? role;
   const initials = ROLE_INITIALS[role] ?? role.slice(0, 2).toUpperCase();
@@ -109,12 +120,11 @@ const DashboardHeader = () => {
             <DropdownMenuSeparator />
             <DropdownMenuItem
               variant="destructive"
-              onSelect={async () => {
-                await logoutAction();
-              }}
+              disabled={isPending}
+              onSelect={handleLogout}
             >
               <LogOut className="h-4 w-4" />
-              Keluar
+              {isPending ? "Keluar..." : "Keluar"}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

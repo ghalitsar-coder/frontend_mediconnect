@@ -25,8 +25,9 @@ function decodeJwtPayload(token: string): { user_id: string; role: string; exp: 
 
 // ─── Login ────────────────────────────────────────────────────────────────────
 export async function loginAction(data: { email: string; password: string }) {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1"
   try {
-    const response = await fetch("http://localhost:8080/api/v1/auth/login", {
+    const response = await fetch(`${apiUrl}/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
@@ -81,16 +82,40 @@ export async function loginAction(data: { email: string; password: string }) {
 // ─── Logout ───────────────────────────────────────────────────────────────────
 export async function logoutAction() {
   const cookieStore = await cookies()
-  const opts = {
-    httpOnly: false,
+
+  // ── 1. Hit backend /auth/logout ───────────────────────────────────────────
+  // Penting: backend akan mengirim Set-Cookie dengan MaxAge=-1 untuk semua
+  // auth cookies (token, auth_session, user_role). Ini yang benar-benar
+  // menghapus cookie di browser. Tanpa langkah ini, auth_session & user_role
+  // masih tersisa di browser sehingga proxy.ts tetap redirect ke /dashboard.
+  const token = cookieStore.get("token")?.value
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1"
+
+  try {
+    await fetch(`${apiUrl}/auth/logout`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        // Kirim JWT HttpOnly token agar backend bisa invalidate jika perlu
+        ...(token ? { Cookie: `token=${token}` } : {}),
+      },
+      cache: "no-store",
+    })
+  } catch {
+    // Tetap lanjutkan logout lokal meskipun backend tidak bisa dihubungi
+  }
+
+  // ── 2. Hapus semua cookies di sisi Next.js server ─────────────────────────
+  // maxAge: -1 → instruksi browser untuk langsung menghapus cookie
+  const deleteOpts = {
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax" as const,
-    maxAge: 0,
+    maxAge: -1,
     path: "/",
   }
-  // Hapus semua auth cookies — maxAge: 0 langsung expired di browser
-  cookieStore.set("token",        "", { ...opts, httpOnly: true })
-  cookieStore.set("auth_session", "", opts)
-  cookieStore.set("user_role",    "", opts)
+  cookieStore.set("token",        "", { ...deleteOpts, httpOnly: true })
+  cookieStore.set("auth_session", "", { ...deleteOpts, httpOnly: false })
+  cookieStore.set("user_role",    "", { ...deleteOpts, httpOnly: false })
+
   redirect("/")
 }
