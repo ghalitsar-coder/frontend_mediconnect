@@ -175,6 +175,7 @@ async function request<T>(endpoint: string, options: RequestConfig = {}): Promis
   }
 }
 
+
 // ─── Generic HTTP methods ─────────────────────────────────────────────────────
 
 const http = {

@@ -1,7 +1,6 @@
 // Server Component — tidak ada "use client"
 // Baca cookie di server, tidak ada useEffect atau useState
 import { Search, ShoppingCart, MapPin, ChevronDown, User, LogOut } from "lucide-react";
-import { getCurrentUser } from "@/lib/auth";        // ← plain function, BUKAN Server Action
 import { logoutAction } from "@/app/actions/auth";  // ← hanya mutasi (logout)
 import Link from "next/link";
 import {
@@ -12,6 +11,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { getCurrentUser } from "@/lib/auth";
+import { LogoutButton } from "../LogoutButton";
 
 const Header = async () => {
   // Dibaca di SERVER — tidak ada flash/loading state, tidak ada POST request
@@ -93,15 +94,9 @@ const Header = async () => {
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                {/* logoutAction: server action → hapus cookie + redirect ke "/" */}
-                <form action={logoutAction}>
                   <DropdownMenuItem asChild>
-                    <button type="submit" className="w-full text-destructive cursor-pointer flex items-center">
-                      <LogOut className="mr-2 h-4 w-4" />
-                      Logout
-                    </button>
+                    <LogoutButton/>
                   </DropdownMenuItem>
-                </form>
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
@@ -109,7 +104,7 @@ const Header = async () => {
               href="/login"
               className="px-5 py-2 rounded-full bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
             >
-              Login
+              Loginasd
             </Link>
           )}
         </nav>
