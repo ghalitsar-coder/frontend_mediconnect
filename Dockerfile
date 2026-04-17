@@ -11,8 +11,9 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Beritahu Next.js untuk menanam teks placeholder saat proses build
-ENV NEXT_PUBLIC_API_URL=APP_PLACEHOLDER_API_URL
+# Terima ARG dari GitHub Actions dan jadikan ENV untuk diproses Next.js saat build
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN npm run build
@@ -34,12 +35,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 
-# Salin script entrypoint
-COPY entrypoint.sh /usr/bin/entrypoint.sh
-RUN chmod +x /usr/bin/entrypoint.sh
-
-# Jalankan script sebelum aplikasi mulai
-ENTRYPOINT ["/usr/bin/entrypoint.sh"]
+# (Entrypoint hack dihapus, jalankan langsung lewat CMD)
 
 # Gunakan user non-root demi keamanan (Pastikan file .next bisa ditulis oleh user ini)
 USER nextjs
