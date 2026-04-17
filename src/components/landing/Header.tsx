@@ -104,7 +104,7 @@ const Header = async () => {
               href="/login"
               className="px-5 py-2 rounded-full bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
             >
-              Loginasd
+              Loginasdhij
             </Link>
           )}
         </nav>
