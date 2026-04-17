@@ -45,4 +45,4 @@ jobs:
             echo "Restarting Frontend..."
             docker stop frontend-app || true
             docker rm frontend-app || true
-            docker run -d --name frontend-app -p 3000:3000 ${{ env.FRONTEND_IMAGE_NAME }}
+            docker run -d --name frontend-app -p 3000:3000 -e NEXT_PUBLIC_API_URL="http://${{ secrets.FRONTEND_HOST }}" ${{ env.FRONTEND_IMAGE_NAME }}
