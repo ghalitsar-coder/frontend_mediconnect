@@ -6,8 +6,13 @@ import Link from "next/link";
 import axios from "axios";
 import { toast } from "sonner";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
 
+  const RAW_API_URL = process.env.NODE_ENV === 'production'
+  ? process.env.NEXT_PUBLIC_API_URL
+  : 'http://localhost:8080/api/v1';
+const API_BASE_URL = RAW_API_URL?.endsWith('/api/v1')
+  ? RAW_API_URL
+  : `${RAW_API_URL?.replace(/\/$/, '')}/api/v1`;
 const api = axios.create({
   baseURL: API_BASE_URL,
   withCredentials: true,
