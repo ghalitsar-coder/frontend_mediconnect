@@ -1,0 +1,48 @@
+name: Deploy Frontend
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  FRONTEND_IMAGE_NAME: ghalitsar/frontend-app:v2
+
+jobs:
+  build-and-push-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push Frontend Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ env.FRONTEND_IMAGE_NAME }}
+
+  deploy-frontend:
+    needs: build-and-push-frontend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy Frontend via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.FRONTEND_HOST }}
+          username: ${{ secrets.FRONTEND_USERNAME }}
+          key: ${{ secrets.FRONTEND_SSH_KEY }}
+          script: |
+            echo "Menarik Image Frontend Terbaru dari Docker Hub..."
+            docker pull ${{ env.FRONTEND_IMAGE_NAME }}
+            
+            echo "Restarting Frontend..."
+            docker stop frontend-app || true
+            docker rm frontend-app || true
+            docker run -d --name frontend-app -p 3000:3000 ${{ env.FRONTEND_IMAGE_NAME }}
