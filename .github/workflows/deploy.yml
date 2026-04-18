@@ -28,7 +28,7 @@ jobs:
           push: true
           tags: ${{ env.FRONTEND_IMAGE_NAME }}
           build-args: |
-            NEXT_PUBLIC_API_URL=http://${{ secrets.FRONTEND_HOST }}
+            NEXT_PUBLIC_API_URL=https://mediconnect-ghal.duckdns.org/api/v1
 
   deploy-frontend:
     needs: build-and-push-frontend
