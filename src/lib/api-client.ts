@@ -24,13 +24,15 @@ import type {
 
 // ─── Base URL ─────────────────────────────────────────────────────────────────
 
+// Di production dengan reverse proxy Same-Origin, kita aman menggunakan relative path /api/v1
+// Ini secara otomatis akan menggunakan URL domain aktif (HTTPS memanggil HTTPS).
 const RAW_API_URL = process.env.NODE_ENV === 'production'
-  ? process.env.NEXT_PUBLIC_API_URL
+  ? process.env.NEXT_PUBLIC_API_URL || '/api/v1'
   : 'http://localhost:8080/api/v1';
 
 const API_BASE_URL = RAW_API_URL?.endsWith('/api/v1')
   ? RAW_API_URL
-  : `${RAW_API_URL?.replace(/\/$/, '')}/api/v1`;
+  : RAW_API_URL === '/api/v1' ? '/api/v1' : `${RAW_API_URL?.replace(/\/$/, '')}/api/v1`;
 
 // ─── Response envelope ────────────────────────────────────────────────────────
 
