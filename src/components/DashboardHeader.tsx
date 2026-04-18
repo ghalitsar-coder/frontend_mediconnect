@@ -12,7 +12,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { logoutAction } from "@/app/actions/auth";
-import { clearAuthSessionMarkers } from "@/lib/api-client";
+import { api, clearAuthSessionMarkers } from "@/lib/api-client";
+import { useRouter } from "next/navigation";
 
 // Baca cookie non-HttpOnly di client
 function getCookie(name: string): string | null {
@@ -42,14 +43,23 @@ const DashboardHeader = () => {
     if (r) setRole(r);
   }, []);
 
-  const handleLogout = () => {
-    startTransition(async () => {
-      // Hapus non-HttpOnly cookies di sisi client terlebih dahulu
-      clearAuthSessionMarkers();
-      // Kemudian panggil server action (hapus HttpOnly token + redirect)
-      await logoutAction();
-    });
-  };
+  const router  = useRouter()
+ 
+   const handleLogout = async () => {
+     try {
+       // Panggil API logout backend (credentials: 'include' otomatis)
+       await api.auth.logout();
+     } catch (error) {
+       console.error("Logout API error:", error);
+     } finally {
+       // Hapus penanda session di client (localStorage / non-HttpOnly cookie)
+       clearAuthSessionMarkers();
+       
+       // Redirect ke halaman utama dan refresh data client
+       router.push("/");
+       router.refresh();
+     }
+   };
 
   const label = ROLE_LABEL[role] ?? role;
   const initials = ROLE_INITIALS[role] ?? role.slice(0, 2).toUpperCase();
