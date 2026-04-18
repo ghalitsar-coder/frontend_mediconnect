@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { ArrowLeft, Upload, CheckCircle2, Loader2, User, Mail, Calendar, Shield, Camera } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ArrowLeft, Upload, CheckCircle2, Loader2, User, Mail, Calendar, Shield, Camera, Eye } from "lucide-react";
+import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import Link from "next/link";
 import axios from "axios";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 
@@ -32,23 +34,21 @@ interface UserProfile {
 const ProfilePage = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
+  
+  const queryClient = useQueryClient();
 
-  const isKtpUploaded = typeof window !== "undefined" && localStorage.getItem("ktp_uploaded") === "true";
+  const { data: user, isLoading: isUserLoading } = useQuery({
+    queryKey: ["auth", "me"],
+    queryFn: async () => {
+      const res = await api.get("/auth/me");
+      return res.data.data as UserProfile;
+    },
+  });
 
-  // Mock user (nantinya ganti dengan fetch ke /auth/me)
-  const mockUser: UserProfile = {
-    id: "usr_123",
-    full_name: "Ghali Tsar",
-    email: "ghali@example.com",
-    phone: "081234567890",
-    nik: "3275012345678901",
-    role: "PATIENT",
-    ktp_url: typeof window !== "undefined" ? localStorage.getItem("ktp_url") || undefined : undefined,
-    created_at: "2026-01-15",
-  };
+  console.log("user",user)
 
+  const isKtpUploaded = !!user?.ktp_url;
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -62,30 +62,32 @@ const ProfilePage = () => {
     reader.readAsDataURL(file);
   };
 
-  const handleUpload = async () => {
+  const uploadMutation = useMutation({
+    mutationFn: async (formData: FormData) => {
+      const res = await api.post("/uploads/ktp", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      return res.data.data;
+    },
+    onSuccess: () => {
+      setUploadSuccess(true);
+      toast.success("KTP berhasil diunggah! Anda sekarang dapat melakukan booking.");
+      queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
+    },
+    onError: (error: any) => {
+      const message = error.response?.data?.message || error.message;
+      toast.error("Gagal mengunggah KTP: " + message);
+    }
+  });
+
+  const handleUpload = () => {
     if (!selectedFile) {
       toast.error("Pilih file KTP terlebih dahulu");
       return;
     }
     const formData = new FormData();
     formData.append("ktp", selectedFile);
-
-    setIsUploading(true);
-    try {
-      const res = await api.post("/uploads/ktp", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      const data = res.data.data;
-      localStorage.setItem("ktp_uploaded", "true");
-      localStorage.setItem("ktp_url", data.url);
-      setUploadSuccess(true);
-      toast.success("KTP berhasil diunggah! Anda sekarang dapat melakukan booking.");
-    } catch (error: any) {
-      const message = error.response?.data?.message || error.message;
-      toast.error("Gagal mengunggah KTP: " + message);
-    } finally {
-      setIsUploading(false);
-    }
+    uploadMutation.mutate(formData);
   };
 
   return (
@@ -104,7 +106,7 @@ const ProfilePage = () => {
 
       <main className="container mx-auto px-6 py-8 max-w-2xl">
         {/* Informasi Profil */}
-        {/* <div className="rounded-3xl border border-border bg-card p-6 mb-6 shadow-sm">
+        <div className="rounded-3xl border border-border bg-card p-6 mb-6 shadow-sm">
           <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
             <User size={20} className="text-primary" />
             Informasi Akun
@@ -113,27 +115,27 @@ const ProfilePage = () => {
             <div className="flex items-center gap-4 py-2 border-b border-border/50">
               <Mail size={16} className="text-muted-foreground" />
               <span className="text-sm text-muted-foreground w-24">Email</span>
-              <span className="text-sm font-medium text-foreground">{mockUser.email}</span>
+              <span className="text-sm font-medium text-foreground">{user?.email}</span>
             </div>
             <div className="flex items-center gap-4 py-2 border-b border-border/50">
               <User size={16} className="text-muted-foreground" />
               <span className="text-sm text-muted-foreground w-24">Nama Lengkap</span>
-              <span className="text-sm font-medium text-foreground">{mockUser.full_name}</span>
+              <span className="text-sm font-medium text-foreground">{user?.full_name}</span>
             </div>
             <div className="flex items-center gap-4 py-2 border-b border-border/50">
               <Shield size={16} className="text-muted-foreground" />
               <span className="text-sm text-muted-foreground w-24">NIK</span>
-              <span className="text-sm font-medium text-foreground">{mockUser.nik || "Belum diisi"}</span>
+              <span className="text-sm font-medium text-foreground">{user?.nik || "Belum diisi"}</span>
             </div>
             <div className="flex items-center gap-4 py-2 border-b border-border/50">
               <Calendar size={16} className="text-muted-foreground" />
               <span className="text-sm text-muted-foreground w-24">Terdaftar</span>
               <span className="text-sm font-medium text-foreground">
-                {new Date(mockUser.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
+                {user && new Date(user.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
               </span>
             </div>
           </div>
-        </div> */}
+        </div>
 
         {/* Upload KTP Section */}
         <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
@@ -152,8 +154,28 @@ const ProfilePage = () => {
               <p className="text-sm text-muted-foreground">
                 Anda sudah dapat melakukan booking. Terima kasih telah melengkapi data.
               </p>
-              {mockUser.ktp_url && (
-                <img src={mockUser.ktp_url} alt="Preview KTP" className="mt-4 rounded-xl max-h-32 mx-auto border" />
+              {user?.ktp_url && (
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <button className="mt-4 flex items-center justify-center gap-2 mx-auto px-4 py-2 bg-background border border-border shadow-sm rounded-full text-sm font-medium hover:bg-muted transition-colors text-foreground">
+                      <Eye size={16} />
+                      Lihat KTP
+                    </button>
+                  </DialogTrigger>
+                  <DialogContent  className="max-w-2xl border-border bg-card p-6 shadow-xl rounded-2xl w-[90vw]">
+
+                    <div className="flex flex-col gap-4">
+                      <DialogTitle className="text-xl font-bold text-foreground">Preview Dokumen KTP</DialogTitle>
+                      <div className="relative w-full rounded-xl overflow-hidden bg-muted/20 border border-border/50 flex items-center justify-center p-2 min-h-[40vh]">
+                        <img 
+                          src={user.ktp_url} 
+                          alt="Preview KTP" 
+                          className="max-w-full max-h-[60vh] object-contain rounded-lg"
+                        />
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
               )}
             </div>
           ) : (
@@ -181,16 +203,16 @@ const ProfilePage = () => {
 
               <button
                 onClick={handleUpload}
-                disabled={!selectedFile || isUploading}
+                disabled={!selectedFile }
                 className={`mt-6 w-full py-3 rounded-full font-semibold transition-all flex items-center justify-center gap-2 ${
                   !selectedFile
                     ? "bg-muted text-muted-foreground cursor-not-allowed"
-                    : isUploading
+                    : uploadMutation.isPending
                     ? "bg-primary/80 text-primary-foreground"
                     : "bg-primary text-primary-foreground hover-lift shadow-md shadow-primary/20"
                 }`}
               >
-                {isUploading ? (
+                {uploadMutation.isPending ? (
                   <>
                     <Loader2 size={18} className="animate-spin" /> Mengunggah...
                   </>

@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowLeft, ArrowRight, MapPin, Building2, Stethoscope, CalendarDays, Clock, CheckCircle2, QrCode, User, ChevronRight, Star, Users, Download, Home, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import axios from "axios";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 // ── Types ──
 type Facility = { id: string, name: string, type: string, address: string, distance: string, rating: number, queue: number };
@@ -76,8 +78,35 @@ const BookingPage = () => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [bookingResult, setBookingResult] = useState<any>(null);
+  const [isKtpValid, setIsKtpValid] = useState(false);
+  const [isCheckingKtp, setIsCheckingKtp] = useState(true);
 
   const dates = generateDates();
+
+  const router = useRouter();
+
+  useEffect(() => {
+    const checkKtpStatus = async () => {
+      try {
+        const res = await api.get("/auth/me");
+        const user = res.data.data;
+        if (!user.ktp_url) {
+          toast.error("Anda harus mengunggah KTP terlebih dahulu sebelum melakukan booking.");
+          router.push("/profile");
+        } else {
+          setIsKtpValid(true);
+        }
+      } catch (error) {
+        toast.error("Gagal memverifikasi status KTP. Silakan login ulang.");
+        router.push("/login");
+      } finally {
+        setIsCheckingKtp(false);
+      }
+    };
+    checkKtpStatus();
+  }, [router]);
+
+  // Tampilkan loading spinner ditunda (moved down to avoid Rules of Hooks violation)
 
   // 1. Fetch Facilities
   const { data: facilities, isLoading: isLoadingFacilities, isError: isErrFacilities } = useQuery({
@@ -184,6 +213,18 @@ const BookingPage = () => {
 
     bookingMutation.mutate(payload);
   };
+
+  // Tampilkan loading spinner selama pengecekan
+  if (isCheckingKtp) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="animate-spin text-primary" size={48} />
+      </div>
+    );
+  }
+
+  // Jika KTP valid, tampilkan halaman booking seperti biasa
+  if (!isKtpValid) return null;
 
   return (
     <div className="min-h-screen bg-background">
